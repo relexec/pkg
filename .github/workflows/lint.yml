@@ -49,5 +49,5 @@ jobs:
          version: v2.12
          args: --timeout=2m0s --verbose
          only-new-issues: true
-     - name: fmtcheck
+     - name: check go fmt differences
        run: 'bash -c "diff -u <(echo -n) <(gofmt -d .)"'
