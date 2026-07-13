@@ -2,7 +2,7 @@
 [![Test Status](https://github.com/relexec/pkg/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/relexec/pkg/actions)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-Common Go packages for relexec
+Common Go packages for `relexec` source repositories.
 
 ## Developers
 

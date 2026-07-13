@@ -1,8 +1,0 @@
-# username:password:permissions:orgs:domains:namespaces
-sysadmin:sysadmin:system,organization.write,organization.read,domain.write,domain.read,namespace.write,namespace.read:*:*:*
-orgadmin:orgadmin:organization.write,organization.read,domain.write,domain.read,namespace.write,namespace.read:org1:*:*
-orgreader:orgreader:organization.read,domain.read,namespace.read:org1:*:*
-domadmin:domadmin:domain.write,domain.read,namespace.write,namespace.write:org1:dom1:*
-domreader:domreader:domain.read,namespace.read:org1:dom1:*
-nsadmin:nsadmin:namespace.write,namespace.read:org1:dom1:ns1
-nsreader:nsreader:namespace.read:org1:dom1:ns1
