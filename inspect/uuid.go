@@ -26,7 +26,7 @@ func isUUIDBytes(subject []byte) bool {
 		if size == 36 && (x == 8 || x == 13 || x == 18 || x == 23) && ch == '-' {
 			continue
 		}
-		if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) {
+		if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) { //nolint:staticcheck
 			return false
 		}
 	}

@@ -14,11 +14,7 @@ var (
 	v0_1_0 = semver.MustParse("0.1.0")
 	v0_1_1 = semver.MustParse("0.1.1")
 	v1_0_0 = semver.MustParse("1.0.0")
-	v1_0_1 = semver.MustParse("1.0.1")
 	v1_1_0 = semver.MustParse("1.1.0")
-	v1_1_1 = semver.MustParse("1.1.1")
-	v2_0_0 = semver.MustParse("2.0.0")
-	v2_0_1 = semver.MustParse("2.0.1")
 )
 
 func TestSet(t *testing.T) {
