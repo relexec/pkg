@@ -6,17 +6,20 @@ import (
 	"strings"
 
 	"github.com/spf13/pflag"
+
+	"github.com/relexec/pkg/log/compact"
+	"github.com/relexec/pkg/log/logfmt"
 )
 
 const (
 	DefaultLogLevel  = "info"
 	flagLogLevel     = "logging-level"
-	flagLogLevelDesc = "The log level. The default is info. The options are, in descending order of chattiness: debug, info, error"
+	flagLogLevelDesc = "The log level. The default is info. The options are, in descending order of chattiness: debug, warn, info, error"
 	EnvVarLogLevel   = "LOG_LEVEL"
 
 	DefaultLogFormat  = "json"
 	flagLogFormat     = "logging-format"
-	flagLogFormatDesc = "The log format. The default is json. The options are: json, text, logfmt"
+	flagLogFormatDesc = "The log format. The default is json. The options are: json, text, logfmt, compact"
 	EnvVarLogFormat   = "LOG_FORMAT"
 )
 
@@ -25,7 +28,7 @@ type Config struct {
 	// Level is the log level to use.
 	//
 	// The default is "info". The options are, in descending order of
-	// chattiness: "debug", "info", "error".
+	// chattiness: "debug", "info", "warn", "error".
 	Level string `json:"level"`
 	// Format describes the format for the logger to use.
 	//
@@ -60,8 +63,14 @@ func (c *Config) BindFlags(fs *pflag.FlagSet) {
 	pflag.StringVar(
 		&c.Level,
 		flagLogLevel,
-		DefaultLogLevel,
+		"", // empty string to allow defaulting to env var value
 		flagLogLevelDesc,
+	)
+	pflag.StringVar(
+		&c.Format,
+		flagLogFormat,
+		"", // empty string to allow defaulting to env var value
+		flagLogFormatDesc,
 	)
 }
 
@@ -70,7 +79,17 @@ func (c Config) Logger() *slog.Logger {
 	opts := &slog.HandlerOptions{
 		Level: logLevelToSlogLevel(c.Level),
 	}
-	handler := slog.NewJSONHandler(os.Stdout, opts)
+	var handler slog.Handler
+	switch c.Format {
+	case "logfmt":
+		handler = logfmt.NewHandler(os.Stderr, opts)
+	case "text":
+		handler = slog.NewTextHandler(os.Stderr, opts)
+	case "compact":
+		handler = compact.NewHandler(os.Stderr, opts)
+	default:
+		handler = slog.NewJSONHandler(os.Stderr, opts)
+	}
 	return slog.New(handler)
 }
 
