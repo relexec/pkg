@@ -14,13 +14,16 @@ import (
 // [runtime.Frame].
 //
 // For example, given a [runtime.Frame] with a [runtime.Frame.File] value of
-// /home/jaypipes/src/github.com/relexec/pkg/log/config.go and a
+// /home/jaypipes/src/github.com/project/pkg/log/config.go and a
 // [runtime.Frame.Line] value of 20, the returned value would be:
 //
 // pkg/log/config.go:20
 func FormatSourceFileAndLine(f runtime.Frame) string {
+	if f.File == "" {
+		return ""
+	}
 	dirs := strings.Split(filepath.Dir(f.File), string(filepath.Separator))
-	popDirs := min(len(dirs), 2)
+	popDirs := min(len(dirs)-1, 2)
 	slices.Reverse(dirs)
 	dirs = dirs[0:popDirs]
 	slices.Reverse(dirs)
