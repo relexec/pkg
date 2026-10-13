@@ -18,7 +18,6 @@ var (
 )
 
 func TestSet(t *testing.T) {
-
 	cases := []struct {
 		name string
 		add  []semver.Version

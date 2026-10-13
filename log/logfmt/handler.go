@@ -28,10 +28,11 @@ type Handler struct {
 	mu   *sync.Mutex
 	out  io.Writer
 	opts *slog.HandlerOptions
-	// preformatted contains the formatted output of Attrs associated with
-	// already opened Groups. This prevents the need to format Attrs on each
-	// call to Log/LogAttrs for groups and attrs that were associated with the
-	// Handler from a call to WithGroup or WithAttrs.
+	// groups stores the stack of group names that are added to the
+	// preformatted Attrs.
+	groups []string
+	// preformatted contains the formatted output of Attrs associated with the
+	// handler via calls to WithAttrs() and WithGroups()
 	preformatted string
 }
 
@@ -54,6 +55,9 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 		return h
 	}
 	h2 := *h
+	h2.groups = make([]string, len(h.groups)+1)
+	copy(h2.groups, h.groups)
+	h2.groups[len(h2.groups)-1] = name
 	return &h2
 }
 
@@ -67,6 +71,11 @@ func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	defer builderPool.Put(b)
 	b.Reset()
 
+	if h2.preformatted != "" {
+		b.WriteString(h2.preformatted)
+		b.WriteRune(' ')
+	}
+
 	for _, a := range attrs {
 		h2.appendAttr(b, a)
 	}
@@ -79,10 +88,18 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	defer builderPool.Put(b)
 	b.Reset()
 	if !r.Time.IsZero() {
-		h.appendAttr(b, slog.Time(slog.TimeKey, r.Time))
+		b.WriteString(slog.TimeKey)
+		b.WriteRune('=')
+		b.WriteString(r.Time.Format(time.RFC3339Nano))
+		b.WriteRune(' ')
 	}
-	h.appendAttr(b, slog.Any(slog.LevelKey, r.Level))
-	if h.Enabled(ctx, slog.LevelDebug) && r.PC != 0 {
+
+	b.WriteString(slog.LevelKey)
+	b.WriteRune('=')
+	b.WriteString(r.Level.String())
+	b.WriteRune(' ')
+
+	if h.Enabled(ctx, slog.LevelDebug) && h.opts.AddSource && r.PC != 0 {
 		fs := runtime.CallersFrames([]uintptr{r.PC})
 		f, _ := fs.Next()
 		b.WriteString(slog.SourceKey)
@@ -92,7 +109,10 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		b.WriteRune(' ')
 	}
 
-	h.appendAttr(b, slog.String(slog.MessageKey, r.Message))
+	b.WriteString(slog.MessageKey)
+	b.WriteRune('=')
+	b.WriteString(strconv.Quote(r.Message))
+	b.WriteRune(' ')
 
 	b.WriteString(h.preformatted)
 
@@ -103,11 +123,11 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		},
 	)
 
-	b.WriteRune('\n')
-
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	_, err := h.out.Write([]byte(b.String()))
+
+	s := strings.TrimSpace(b.String()) + "\n"
+	_, err := h.out.Write([]byte(s))
 	return err
 }
 
@@ -115,13 +135,21 @@ func (h *Handler) appendAttr(b *strings.Builder, a slog.Attr) {
 	if a.Equal(slog.Attr{}) {
 		return
 	}
+
+	var keyPrefix string
+	if len(h.groups) > 0 {
+		keyPrefix = strings.Join(h.groups, ".") + "."
+	}
+
 	a.Value = a.Value.Resolve()
 	switch a.Value.Kind() {
 	case slog.KindDuration:
+		b.WriteString(keyPrefix)
 		b.WriteString(a.Key)
 		b.WriteRune('=')
 		b.WriteString(strconv.FormatInt(a.Value.Duration().Nanoseconds(), 10))
 	case slog.KindTime:
+		b.WriteString(keyPrefix)
 		b.WriteString(a.Key)
 		b.WriteRune('=')
 		b.WriteString(a.Value.Time().Format(time.RFC3339Nano))
@@ -134,6 +162,7 @@ func (h *Handler) appendAttr(b *strings.Builder, a slog.Attr) {
 			h.appendAttr(b, ga)
 		}
 	default:
+		b.WriteString(keyPrefix)
 		b.WriteString(a.Key)
 		b.WriteRune('=')
 		b.WriteString(strconv.Quote(a.Value.String()))
